@@ -1,17 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Discord.Net;
 using WebSocketSharp;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
 using System.Threading;
-using System.Web.Script.Serialization;
 using DSC.Data;
 using System.Runtime.InteropServices;
 
@@ -21,7 +14,7 @@ namespace DSC
     {
         public static string Token = string.Empty;
         static WebSocket ws = new WebSocket("wss://gateway.discord.gg/?v=6&encoding=json");
-        static string op1 = @"{""op"": 1, ""d"": 251}"; // ""presence"": { ""game"": { ""name"": ""HECC"", ""type"": 0 } }
+        static string op1 = @"{""op"": 1, ""d"": 251}"; // ""presence"": { ""game"": { ""name"": ""test"", ""type"": 0 } }
         static string op2 = @"{""op"": 2, ""d"": { ""token"": ""&1"", ""properties"": { ""$os"": ""linux"", ""$browser"": ""etzyy - wrapper"", ""$device"": ""etzyy - wrapper"" }, ""compress"": false, ""large_threshold"": 250, ""status"": ""online"", ""since"": &2, ""afk"": false} }";
         static string op2p = string.Empty;
 
@@ -107,37 +100,57 @@ namespace DSC
         //int.TryParse(e.Data.Split(',')[2].Split(':')[1], out x);
         static int flg = 0;
         static int heartbeat = 0;
+        static int readycount = 0;
         private static void Ws_OnMessage(object sender, MessageEventArgs e)
         {
             RootObject RO = JsonConvert.DeserializeObject<RootObject>(e.Data);
-            Console.WriteLine(String.Format("t: {0} | s: {1} | op: {2}", RO.t, RO.s, RO.op));
-            if(RO.t == "MESSAGE_CREATE")
+            Console.WriteLine(String.Format("DEBUG| t: {0} | s: {1} | op: {2}", RO.t, RO.s, RO.op));
+            if(flg != 2)
             {
-                Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
-                Console.WriteLine(string.Format("user: {0} | content: {1}", MC.d.author.username, MC.d.content));
+                if (readycount >= 20)
+                    Exit("FAILED TO RECIEVE CRITICAL OP FROM SERVER");
+                if (flg < 1)
+                {
+                    readycount++;
+                    if (RO.op == 10)
+                    {
+                        Console.WriteLine("Op10 has been recieved!, parsing...");
+                        HeartBeat heart = JsonConvert.DeserializeObject<HeartBeat>(e.Data);
+                        heartbeat = heart.d.heartbeat_interval;
+                        Console.WriteLine("Heartbeat: " + heartbeat);
+                        Thread thr = new Thread(() => PostOp1(heartbeat));
+                        thr.Start();
+                        flg = 1;
+                        ws.Send(op2);
+                        Console.WriteLine("Replying with OP2... waiting.");
+                        readycount = 0;
+                    }
+                }
+                else
+                {
+                    if (RO.t == "READY")
+                    {
+                        Console.WriteLine("Recieved 'READY' event! Handshake complete!");
+                        StaticData.CurrentUser = RO.d.user;
+                        StaticData.Guilds = RO.d.guilds;
+                        ReadyEvent = RO;
+                        flg = 2;
+                    }
+                    else
+                        readycount++;
+                }
             }
-            if (RO.op == 10)
+            else
             {
-                Console.WriteLine("Op10 has been recieved!, parsing...");
-                Data.HeartBeat heart = JsonConvert.DeserializeObject<HeartBeat>(e.Data);
-                heartbeat = heart.d.heartbeat_interval;
-                Console.WriteLine("Heartbeat: " + heartbeat);
-                ws.Send(op2);
-                Console.WriteLine("Replying with OP2... waiting.");
-            }
-            if (flg == 0)
-            {
-                Thread thr = new Thread(() => PostOp1(heartbeat));
-                thr.Start();
-                flg = 1;
-            }
-            if(RO.t == "READY")
-            {
-                Console.WriteLine("Recieved 'READY' event! Handshake complete!");
-                StaticData.CurrentUser = RO.d.user;
-                StaticData.Guilds = RO.d.guilds;
-                ReadyEvent = RO;
-                flg = 2;
+                switch (RO.t)
+                {
+                    case "MESSAGE_CREATE":
+                        Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
+                        Console.WriteLine(string.Format("user: {0} | content: {1}", MC.d.author.username, MC.d.content));
+                        break;
+                    case "PRESENCE_UPDATE":
+                        break;
+                }
             }
         }   
 
