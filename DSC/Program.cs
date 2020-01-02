@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using WebSocketSharp;
 using System.Net.Http;
@@ -18,7 +18,7 @@ namespace DSC
         static string op2 = @"{""op"": 2, ""d"": { ""token"": ""&1"", ""properties"": { ""$os"": ""linux"", ""$browser"": ""etzyy - wrapper"", ""$device"": ""etzyy - wrapper"" }, ""compress"": false, ""large_threshold"": 250, ""status"": ""online"", ""since"": &2, ""afk"": false} }";
         static string op2p = string.Empty;
 
-        static RootObject ReadyEvent { get; set; }
+        static ReadyEvent ReadyEvent { get; set; }
         static bool WSConnect()
         {
             bool fn = false;
@@ -103,7 +103,7 @@ namespace DSC
         static int readycount = 0;
         private static void Ws_OnMessage(object sender, MessageEventArgs e)
         {
-            RootObject RO = JsonConvert.DeserializeObject<RootObject>(e.Data);
+            ReadyEvent RO = JsonConvert.DeserializeObject<ReadyEvent>(e.Data);
             Console.WriteLine(String.Format("DEBUG| t: {0} | s: {1} | op: {2}", RO.t, RO.s, RO.op));
             if(flg != 2)
             {
@@ -144,11 +144,18 @@ namespace DSC
             {
                 switch (RO.t)
                 {
+                    default:
+                        Console.WriteLine("UNKNOWN EVENT: " + string.Format("{0}\n{1}", RO.t, JsonConvert.DeserializeObject(e.Data)));
+                        break;
                     case "MESSAGE_CREATE":
                         Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
                         Console.WriteLine(string.Format("user: {0} | content: {1}", MC.d.author.username, MC.d.content));
                         break;
                     case "PRESENCE_UPDATE":
+                        Data.EventTypes.PRESENCE_UPDATE _UPDATE = JsonConvert.DeserializeObject<Data.EventTypes.PRESENCE_UPDATE>(e.Data);
+                        Console.WriteLine(JsonConvert.DeserializeObject(e.Data));
+                        break;
+                    case "null": // ACK
                         break;
                 }
             }
