@@ -1,2 +1,3 @@
-# DiscordCommandLine
-A command line version of discord for Windows
+# DiscordCommandLine - DSC - (WIP)
+A command line version of Discord for Windows
+
