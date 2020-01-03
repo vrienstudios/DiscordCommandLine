@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using WebSocketSharp;
 using System.Net.Http;
@@ -7,18 +7,32 @@ using Newtonsoft.Json;
 using System.Threading;
 using DSC.Data;
 using System.Runtime.InteropServices;
-
+using System.Linq;
 namespace DSC
 {
+    public enum Commands
+    {
+        Post = 0,
+        Delete = 1,
+        Pin = 2,
+        Select = 3,
+    }
     static class Program
     {
         public static string Token = string.Empty;
         static WebSocket ws = new WebSocket("wss://gateway.discord.gg/?v=6&encoding=json");
         static string op1 = @"{""op"": 1, ""d"": 251}"; // ""presence"": { ""game"": { ""name"": ""test"", ""type"": 0 } }
         static string op2 = @"{""op"": 2, ""d"": { ""token"": ""&1"", ""properties"": { ""$os"": ""linux"", ""$browser"": ""etzyy - wrapper"", ""$device"": ""etzyy - wrapper"" }, ""compress"": false, ""large_threshold"": 250, ""status"": ""online"", ""since"": &2, ""afk"": false} }";
-        static string op2p = string.Empty;
 
+        static int flg = 0;
+        static int heartbeat = 0;
+        static int readycount = 0;
+
+        public static string selectedGuildID = string.Empty; // Used for the current guild which is selected.
+        public static Guild selectedGuild;
         static ReadyEvent ReadyEvent { get; set; }
+
+        static bool debugFlag = false;
         static bool WSConnect()
         {
             bool fn = false;
@@ -33,7 +47,7 @@ namespace DSC
                 return false;
             }
         }
-        static bool yN() => Console.ReadLine().ToLower()  == "y" ? true : false;
+        static bool yN() => Console.ReadLine().ToLower()  == "y";
         static void Exit([Optional] string message)
         {
             if (message != null)
@@ -77,9 +91,33 @@ namespace DSC
             //var response = client.PostAsync("https://discordapp.com/api/v6/channels/539280524041125889/messages", data.AsJson());
             //Console.WriteLine(response.Result);
 
-            Console.WriteLine("PAUSED");
+            Console.WriteLine("D for Debug or N for Normal?\n");
+            if ((Console.ReadLine().ToLower() == "d") == true)
+                Debug();
+            else
+                Run();
             Console.ReadLine();
             ws.Close();
+        }
+        static void Run()
+        {
+            foreach (Guild guild in ReadyEvent.d.guilds)
+            {
+                Console.WriteLine(string.Format("Name: {0} | Members: {1} |(use this to select a server)ID: {2}", guild.name, guild.member_count, guild.id));
+            }
+            Console.Write("Select a guild: ");
+            selectedGuildID = Console.ReadLine();
+            selectedGuild = ReadyEvent.d.guilds.Find(root => root.id == selectedGuildID);
+            Console.WriteLine("Gathering information about: " + selectedGuild.name);
+            for(int i = 0; i < selectedGuild.channels.Count; i++)
+            {
+                Console.WriteLine(string.Format("{0}| {1}", i, selectedGuild.channels[i].name));
+            }
+            Console.WriteLine("");
+        }
+        static void Debug()
+        {
+            debugFlag = true;
         }
 
         private static void Ws_OnOpen(object sender, EventArgs e)
@@ -98,12 +136,9 @@ namespace DSC
         //Console.WriteLine("END DATA");
         //int x = 0;
         //int.TryParse(e.Data.Split(',')[2].Split(':')[1], out x);
-        static int flg = 0;
-        static int heartbeat = 0;
-        static int readycount = 0;
         private static void Ws_OnMessage(object sender, MessageEventArgs e)
         {
-            ReadyEvent RO = JsonConvert.DeserializeObject<ReadyEvent>(e.Data);
+            ReadyEvent RO = JsonConvert.DeserializeObject<ReadyEvent>(e.Data); // Prone to error.
             Console.WriteLine(String.Format("DEBUG| t: {0} | s: {1} | op: {2}", RO.t, RO.s, RO.op));
             if(flg != 2)
             {
@@ -145,7 +180,8 @@ namespace DSC
                 switch (RO.t)
                 {
                     default:
-                        Console.WriteLine("UNKNOWN EVENT: " + string.Format("{0}\n{1}", RO.t, JsonConvert.DeserializeObject(e.Data)));
+                        if(debugFlag)
+                            Console.WriteLine("UNKNOWN EVENT: " + string.Format("{0}\n{1}", RO.t, JsonConvert.DeserializeObject(e.Data)));
                         break;
                     case "MESSAGE_CREATE":
                         Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
