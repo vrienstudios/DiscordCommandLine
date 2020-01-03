@@ -136,7 +136,7 @@ namespace DSC
                         Console.Write("Select a guild: \n");
                         string content = Console.ReadLine();
                         if (content.ToUpper() == "BACK")
-                            inServer = false;
+                            Exit("END");
                         selectedGuild = ReadyEvent.d.guilds[int.Parse(content)];
                         inServer = true;
                     }
@@ -157,7 +157,10 @@ namespace DSC
                         }
                         string content = Console.ReadLine();
                         if (content.ToUpper() == "BACK")
+                        {
                             inServer = false;
+                            break;
+                        }
                         selectedChannel = textChannels[int.Parse(content)];
                         inChannel = true;
                     }
@@ -255,7 +258,6 @@ namespace DSC
             {
                 RO = Parse(e.Data);
             }
-            Console.WriteLine(String.Format("DEBUG| t: {0} | s: {1} | op: {2}", RO.t, RO.s, RO.op));
             if(flg != 2)
             {
                 if (readycount >= 20)
