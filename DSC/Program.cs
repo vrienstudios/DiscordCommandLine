@@ -9,6 +9,7 @@ using DSC.Data;
 using System.Runtime.InteropServices;
 using System.Linq;
 using System.Text;
+using System.Collections.Generic;
 
 namespace DSC
 {
@@ -18,8 +19,10 @@ namespace DSC
         Delete = 1,
         Pin = 2,
         Select = 3,
+        Back = 4,
+        Exit = 5,
     }
-    static class Program
+    public static class Program
     {
         public static string Token = string.Empty;
         static WebSocket ws = new WebSocket("wss://gateway.discord.gg/?v=6&encoding=json");
@@ -39,7 +42,9 @@ namespace DSC
         static HttpRequestMessage req = new HttpRequestMessage();
 
         static bool debugFlag = false;
-        static bool WSConnect()
+        static bool inServer = false;
+        static bool inChannel = false;
+        public static bool WSConnect()
         {
             bool fn = false;
             try
@@ -49,7 +54,7 @@ namespace DSC
             }
             catch(Exception ex)
             {
-                Console.WriteLine("FATAL! Can not connect!");
+                Console.WriteLine("FATAL! Can not connect! | " + ex.Message);
                 return false;
             }
         }
@@ -61,20 +66,33 @@ namespace DSC
             Thread.Sleep(20); // provide time to read terminal
             Environment.Exit(0);
         }
+        public static bool SetUp()
+        {
+            try
+            {
+                Console.WriteLine("Setting Events!");
+                ws.OnOpen += Ws_OnOpen;
+                ws.OnMessage += Ws_OnMessage;
+                ws.OnClose += Ws_OnClose;
+
+                Console.WriteLine("Setting Arguments!");
+                Token = File.ReadAllLines(Environment.CurrentDirectory + @"\tk.txt")[0];
+                DateTime dt70 = new DateTime(1970, 1, 1);
+                TimeSpan ts70 = DateTime.Now - dt70;
+                op2 = op2.Replace("&1", Token).Replace("&2", "1577777392396");
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(Token);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception: " + ex.Message);
+                return false;
+            }
+        }
         static void Main(string[] args)
         {
-            Console.WriteLine("Setting Events!");
-            ws.OnOpen += Ws_OnOpen;
-            ws.OnMessage += Ws_OnMessage;
-            ws.OnClose += Ws_OnClose;
-
-            Console.WriteLine("Setting Arguments!");
-            Token = File.ReadAllLines(@"C:\Users\Chay\Source\Repos\tk.txt")[0];
-            DateTime dt70 = new DateTime(1970, 1, 1);
-            TimeSpan ts70 = DateTime.Now - dt70;
-            op2 = op2.Replace("&1", Token).Replace("&2", "1577777392396");
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(Token);
-
+            if (!SetUp())
+                Exit();
             Console.WriteLine("Connecting!");
             int timeout = 0;
             while (!WSConnect() && timeout < 5)
@@ -104,35 +122,98 @@ namespace DSC
         }
         static void Run()
         {
-            for(int i = 0; i < ReadyEvent.d.guilds.Count; i++)
+            while (true)
             {
-                Console.WriteLine(string.Format("{3}| Name: {0} | Members: {1} | ID: {2}", ReadyEvent.d.guilds[i].name, ReadyEvent.d.guilds[i].member_count, ReadyEvent.d.guilds[i].id, i));
-            }
-            Console.Write("Select a guild: \n");
-            //selectedGuild = ReadyEvent.d.guilds.Find(root => root.id == selectedGuildID);
-            selectedGuild = ReadyEvent.d.guilds[int.Parse(Console.ReadLine())]; // will fix this later.
-            Console.WriteLine("Gathering information about: " + selectedGuild.name);
-            for(int i = 0; i < selectedGuild.channels.Count; i++)
-            {
-                Console.WriteLine(string.Format("{0}| {1}", i, selectedGuild.channels[i].name));
-            }
-            Console.Write("Select Channel: ");
-            int ik = int.Parse(Console.ReadLine()); // Too lazy. (refer to above comment)
-            selectedChannel = selectedGuild.channels[ik];
-            Console.Write("\nSend: ");
 
-            //https://discordapp.com/api/v6/channels/572638894538096650/messages
-            object message = new Message
+                while (!inServer)
+                {
+                    try
+                    {
+                        for (int i = 0; i < ReadyEvent.d.guilds.Count; i++)
+                        {
+                            Console.WriteLine(string.Format("{3}| Name: {0} | Members: {1} | ID: {2}", ReadyEvent.d.guilds[i].name, ReadyEvent.d.guilds[i].member_count, ReadyEvent.d.guilds[i].id, i));
+                        }
+                        Console.Write("Select a guild: \n");
+                        string content = Console.ReadLine();
+                        if (content.ToUpper() == "BACK")
+                            inServer = false;
+                        selectedGuild = ReadyEvent.d.guilds[int.Parse(content)];
+                        inServer = true;
+                    }
+                    catch
+                    {
+                        Console.WriteLine("Try again!");
+                    }
+                }
+                while (!inChannel)
+                {
+                    List<Channel> textChannels = selectedGuild.channels.Where(root => root.type == 0).ToList();
+                    try
+                    {
+                        Console.WriteLine("Channels: \n");
+                        for(int i = 0; i < textChannels.Count(); i++)
+                        {
+                            Console.WriteLine(string.Format("{0}|{1} | nsfw: {2}", i, textChannels[i].name, textChannels[i].nsfw));
+                        }
+                        string content = Console.ReadLine();
+                        if (content.ToUpper() == "BACK")
+                            inServer = false;
+                        selectedChannel = textChannels[int.Parse(content)];
+                        inChannel = true;
+                    }
+                    catch
+                    {
+                        Console.WriteLine("Try again!");
+                    }
+                    finally
+                    {
+                        textChannels.Clear();
+                    }
+                }
+                while(inServer && inChannel)
+                {
+                    Console.Write("Command: ");
+                    switch (Console.ReadLine().ToUpper())
+                    {
+                        case "POST":
+                            Send();
+                            break;
+                        case "BACK":
+                            inChannel = false;
+                            break;
+                    }
+                }
+            }
+        }
+        static bool Send([Optional] string content)
+        {
+            if (content == null)
+                content = Console.ReadLine();
+            StringContent data = new StringContent(JsonConvert.SerializeObject(new Message(content)), UnicodeEncoding.UTF8, "application/json");
+            try
             {
-                content = Console.ReadLine()
-            };
-            StringContent data = new StringContent(JsonConvert.SerializeObject(message), UnicodeEncoding.UTF8, "application/json");
-            System.Threading.Tasks.Task<HttpResponseMessage> response = client.PostAsync(string.Format("https://discordapp.com/api/v6/channels/{0}/messages", selectedChannel.id), data);
-            Console.WriteLine(response.Result);
+                System.Threading.Tasks.Task<HttpResponseMessage> response = client.PostAsync(string.Format("https://discordapp.com/api/v6/channels/{0}/messages", selectedChannel.id), data);
+                if (!response.Result.IsSuccessStatusCode)
+                    throw new Exception();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error posting: " + ex.Message);
+                return false;
+            }
+            finally
+            {
+                data.Dispose();
+            }
         }
         class Message // temporary
         {
             public string content { get; set; }
+            public Message(string content)
+            {
+                this.content = content;
+            }
         }
         static void Debug()
         {
@@ -155,9 +236,25 @@ namespace DSC
         //Console.WriteLine("END DATA");
         //int x = 0;
         //int.TryParse(e.Data.Split(',')[2].Split(':')[1], out x);
+        static ReadyEvent Parse(string data)
+        {
+            try
+            {
+                ReadyEvent RO = JsonConvert.DeserializeObject<ReadyEvent>(data);
+                return RO;
+            }
+            catch
+            {
+                return null;
+            }
+        }
         private static void Ws_OnMessage(object sender, MessageEventArgs e)
         {
-            ReadyEvent RO = JsonConvert.DeserializeObject<ReadyEvent>(e.Data); // Prone to error.
+            ReadyEvent RO = null;
+            while(RO == null)
+            {
+                RO = Parse(e.Data);
+            }
             Console.WriteLine(String.Format("DEBUG| t: {0} | s: {1} | op: {2}", RO.t, RO.s, RO.op));
             if(flg != 2)
             {
@@ -204,13 +301,12 @@ namespace DSC
                         break;
                     case "MESSAGE_CREATE":
                         Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
-                        Console.WriteLine(string.Format("user: {0} | content: {1}", MC.d.author.username, MC.d.content));
+                        Console.WriteLine(string.Format("{0}#{1}:{2} | {3}", MC.d.author.username, MC.d.author.discriminator, MC.d.content, MC.d.timestamp));
                         break;
                     case "PRESENCE_UPDATE":
                         Data.EventTypes.PRESENCE_UPDATE _UPDATE = JsonConvert.DeserializeObject<Data.EventTypes.PRESENCE_UPDATE>(e.Data);
-                        Console.WriteLine(JsonConvert.DeserializeObject(e.Data));
                         break;
-                    case "null": // ACK
+                    case "": // ACK
                         break;
                 }
             }
