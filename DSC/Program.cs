@@ -8,6 +8,8 @@ using System.Threading;
 using DSC.Data;
 using System.Runtime.InteropServices;
 using System.Linq;
+using System.Text;
+
 namespace DSC
 {
     public enum Commands
@@ -29,8 +31,12 @@ namespace DSC
         static int readycount = 0;
 
         public static string selectedGuildID = string.Empty; // Used for the current guild which is selected.
+        public static Channel selectedChannel;
         public static Guild selectedGuild;
         static ReadyEvent ReadyEvent { get; set; }
+
+        static HttpClient client = new HttpClient();
+        static HttpRequestMessage req = new HttpRequestMessage();
 
         static bool debugFlag = false;
         static bool WSConnect()
@@ -67,6 +73,7 @@ namespace DSC
             DateTime dt70 = new DateTime(1970, 1, 1);
             TimeSpan ts70 = DateTime.Now - dt70;
             op2 = op2.Replace("&1", Token).Replace("&2", "1577777392396");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(Token);
 
             Console.WriteLine("Connecting!");
             int timeout = 0;
@@ -82,10 +89,6 @@ namespace DSC
             if (!yN())
                 Exit("Replied 'no' to continuation message.");
 
-            HttpClient client = new HttpClient();
-            HttpRequestMessage req = new HttpRequestMessage();
-            
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(Token);
             //var data = new { content = "Hello world!" };
             //Console.WriteLine(data.AsJson().ReadAsStringAsync().Result);//654860494414544905 539280524041125889
             //var response = client.PostAsync("https://discordapp.com/api/v6/channels/539280524041125889/messages", data.AsJson());
@@ -101,19 +104,35 @@ namespace DSC
         }
         static void Run()
         {
-            foreach (Guild guild in ReadyEvent.d.guilds)
+            for(int i = 0; i < ReadyEvent.d.guilds.Count; i++)
             {
-                Console.WriteLine(string.Format("Name: {0} | Members: {1} |(use this to select a server)ID: {2}", guild.name, guild.member_count, guild.id));
+                Console.WriteLine(string.Format("{3}| Name: {0} | Members: {1} | ID: {2}", ReadyEvent.d.guilds[i].name, ReadyEvent.d.guilds[i].member_count, ReadyEvent.d.guilds[i].id, i));
             }
-            Console.Write("Select a guild: ");
-            selectedGuildID = Console.ReadLine();
-            selectedGuild = ReadyEvent.d.guilds.Find(root => root.id == selectedGuildID);
+            Console.Write("Select a guild: \n");
+            //selectedGuild = ReadyEvent.d.guilds.Find(root => root.id == selectedGuildID);
+            selectedGuild = ReadyEvent.d.guilds[int.Parse(Console.ReadLine())]; // will fix this later.
             Console.WriteLine("Gathering information about: " + selectedGuild.name);
             for(int i = 0; i < selectedGuild.channels.Count; i++)
             {
                 Console.WriteLine(string.Format("{0}| {1}", i, selectedGuild.channels[i].name));
             }
-            Console.WriteLine("");
+            Console.Write("Select Channel: ");
+            int ik = int.Parse(Console.ReadLine()); // Too lazy. (refer to above comment)
+            selectedChannel = selectedGuild.channels[ik];
+            Console.Write("\nSend: ");
+
+            //https://discordapp.com/api/v6/channels/572638894538096650/messages
+            object message = new Message
+            {
+                content = Console.ReadLine()
+            };
+            StringContent data = new StringContent(JsonConvert.SerializeObject(message), UnicodeEncoding.UTF8, "application/json");
+            System.Threading.Tasks.Task<HttpResponseMessage> response = client.PostAsync(string.Format("https://discordapp.com/api/v6/channels/{0}/messages", selectedChannel.id), data);
+            Console.WriteLine(response.Result);
+        }
+        class Message // temporary
+        {
+            public string content { get; set; }
         }
         static void Debug()
         {
