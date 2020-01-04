@@ -32,6 +32,8 @@ namespace DSC
         static int flg = 0;
         static int heartbeat = 0;
         static int readycount = 0;
+        static int dtop { get; set; }
+        static int dleft { get; set; }
 
         public static string selectedGuildID = string.Empty; // Used for the current guild which is selected.
         public static Channel selectedChannel;
@@ -76,6 +78,8 @@ namespace DSC
                 ws.OnClose += Ws_OnClose;
 
                 Console.WriteLine("Setting Arguments!");
+                dtop = Console.CursorTop;
+                dleft = Console.CursorLeft;
                 Token = File.ReadAllLines(Environment.CurrentDirectory + @"\tk.txt")[0];
                 DateTime dt70 = new DateTime(1970, 1, 1);
                 TimeSpan ts70 = DateTime.Now - dt70;
@@ -173,16 +177,33 @@ namespace DSC
                         textChannels.Clear();
                     }
                 }
+                //int inloop = 1;
                 while(inServer && inChannel)
                 {
+                    //if(inloop < 1)
+                        //Console.SetCursorPosition(0, 0);
+                    Console.Clear();
+                    //Console.WriteLine("\n\n");
+                    foreach (Data.EventTypes.MESSAGE_CREATE.Event_message_create mc in StaticData.Messages)
+                    {
+                        Console.WriteLine(string.Format("{0}#{1}:{2}\n{3}\n", mc.d.author.username, mc.d.author.discriminator, mc.d.timestamp, mc.d.content));
+                    }
                     Console.Write("Command: ");
-                    switch (Console.ReadLine().ToUpper())
+                    String content = Console.ReadLine();
+                    switch (content.Split(' ')[0].ToUpper())
                     {
                         case "POST":
-                            Send();
+                            Send(content.Substring(4, content.Length - 4));
+                            Thread.Sleep(10); // wait for response from server.
                             break;
                         case "BACK":
                             inChannel = false;
+                            Console.Clear();
+                            Console.SetCursorPosition(dleft, dtop);
+                            break;
+                        case "CLEAR":
+                            Console.Clear();
+                            StaticData.Messages.Clear();
                             break;
                     }
                 }
@@ -198,11 +219,13 @@ namespace DSC
                 System.Threading.Tasks.Task<HttpResponseMessage> response = client.PostAsync(string.Format("https://discordapp.com/api/v6/channels/{0}/messages", selectedChannel.id), data);
                 if (!response.Result.IsSuccessStatusCode)
                     throw new Exception();
+                Console.Title = "Message Sent";
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error posting: " + ex.Message);
+                Console.Title = ex.Message;
+                //Console.WriteLine("Error posting: " + ex.Message);
                 return false;
             }
             finally
@@ -275,7 +298,7 @@ namespace DSC
                         thr.Start();
                         flg = 1;
                         ws.Send(op2);
-                        Console.WriteLine("Replying with OP2... waiting.");
+                        Console.WriteLine("Replying with OP2... waiting."); // Seems to be some kind of loop here.
                         readycount = 0;
                     }
                 }
@@ -303,12 +326,13 @@ namespace DSC
                         break;
                     case "MESSAGE_CREATE":
                         Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
-                        Console.WriteLine(string.Format("{0}#{1}:{2} | {3}", MC.d.author.username, MC.d.author.discriminator, MC.d.content, MC.d.timestamp));
+                        StaticData.Messages.Add(MC);
+                        Console.Title = "added";
                         break;
                     case "PRESENCE_UPDATE":
                         Data.EventTypes.PRESENCE_UPDATE _UPDATE = JsonConvert.DeserializeObject<Data.EventTypes.PRESENCE_UPDATE>(e.Data);
                         break;
-                    case "": // ACK
+                    case "MESSAGE_ACK": // ACK
                         break;
                 }
             }
