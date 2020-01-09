@@ -254,7 +254,7 @@ namespace DSC
 
         private static void Ws_OnClose(object sender, CloseEventArgs e)
         {
-            Console.WRiteLine(string.Format("The connection to the Discord API has unexpectedly closed!\nMsg: {0}\nCode: {1}", e.Reason, e.Code));
+            Console.WriteLine(string.Format("The connection to the Discord API has unexpectedly closed!\nMsg: {0}\nCode: {1}", e.Reason, e.Code));
             Console.ReadLine();
         }
 
