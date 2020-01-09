@@ -194,7 +194,8 @@ namespace DSC
                     {
                         case "POST":
                             Send(content.Substring(4, content.Length - 4));
-                            Thread.Sleep(10); // wait for response from server.
+                            Thread.Sleep(20); // wait for response from server.
+                            // TODO: Create an event and wait wait on that event to be triggered. (Or wait on a flag to change.)
                             break;
                         case "BACK":
                             inChannel = false;
@@ -253,8 +254,8 @@ namespace DSC
 
         private static void Ws_OnClose(object sender, CloseEventArgs e)
         {
-            Console.WriteLine(e.Reason);
-            Console.WriteLine(e.Code);
+            Console.WRiteLine(string.Format("The connection to the Discord API has unexpectedly closed!\nMsg: {0}\nCode: {1}", e.Reason, e.Code));
+            Console.ReadLine();
         }
 
         //Console.WriteLine("DATA FLAG");
