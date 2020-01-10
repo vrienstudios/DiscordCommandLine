@@ -24,6 +24,6 @@ namespace DSC.Data.EventTypes
         public string t { get; set; }
         public int s { get; set; }
         public int op { get; set; }
-        public D d { get; set; }
+        public PRD d { get; set; }
     }
 }
