@@ -114,12 +114,12 @@ namespace DSC
             //Console.WriteLine(data.AsJson().ReadAsStringAsync().Result);//654860494414544905 539280524041125889
             //var response = client.PostAsync("https://discordapp.com/api/v6/channels/539280524041125889/messages", data.AsJson());
             //Console.WriteLine(response.Result);
-
+            #if(debug)
             Console.WriteLine("D for Debug or N for Normal?\n");
             if ((Console.ReadLine().ToLower() == "d") == true)
                 Debug();
-            else
-                Run();
+            #endif
+            Run();
             Console.ReadLine();
             ws.Close();
         }
