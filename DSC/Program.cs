@@ -48,7 +48,6 @@ namespace DSC
         static bool inChannel = false;
         public static bool WSConnect()
         {
-            bool fn = false;
             try
             {
                 ws.Connect();
@@ -78,7 +77,7 @@ namespace DSC
                 ws.OnClose += Ws_OnClose;
 
                 Console.WriteLine("Setting Arguments!");
-                dtop = Console.CursorTop;
+                dtop = Console.CursorTop; // May not work on some computers or in integrated/emuated consoles.
                 dleft = Console.CursorLeft;
                 Token = File.ReadAllLines(Environment.CurrentDirectory + @"\tk.txt")[0];
                 DateTime dt70 = new DateTime(1970, 1, 1);
@@ -322,7 +321,7 @@ namespace DSC
                 switch (RO.t)
                 {
                     default:
-                        if(debugFlag)
+                        if(debugFlag) // debug flag is set to false yet this still happens.
                             Console.WriteLine("UNKNOWN EVENT: " + string.Format("{0}\n{1}", RO.t, JsonConvert.DeserializeObject(e.Data)));
                         break;
                     case "MESSAGE_CREATE":
