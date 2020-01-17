@@ -25,6 +25,7 @@ namespace DSC
     public static class Program
     {
         public static string Token = string.Empty;
+        // Beginnning transformation from WebsocketSharp to the built-in .NET WebSockets client.
         static WebSocket ws = new WebSocket("wss://gateway.discord.gg/?v=6&encoding=json");
         static string op1 = @"{""op"": 1, ""d"": 251}"; // ""presence"": { ""game"": { ""name"": ""test"", ""type"": 0 } }
         static string op2 = @"{""op"": 2, ""d"": { ""token"": ""&1"", ""properties"": { ""$os"": ""linux"", ""$browser"": ""etzyy - wrapper"", ""$device"": ""etzyy - wrapper"" }, ""compress"": false, ""large_threshold"": 250, ""status"": ""online"", ""since"": &2, ""afk"": false} }";
