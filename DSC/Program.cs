@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using WebSocketSharp;
 using System.Net.Http;
@@ -25,7 +25,6 @@ namespace DSC
     public static class Program
     {
         public static string Token = string.Empty;
-        // Beginnning transformation from WebsocketSharp to the built-in .NET WebSockets client.
         static WebSocket ws = new WebSocket("wss://gateway.discord.gg/?v=6&encoding=json");
         static string op1 = @"{""op"": 1, ""d"": 251}"; // ""presence"": { ""game"": { ""name"": ""test"", ""type"": 0 } }
         static string op2 = @"{""op"": 2, ""d"": { ""token"": ""&1"", ""properties"": { ""$os"": ""linux"", ""$browser"": ""etzyy - wrapper"", ""$device"": ""etzyy - wrapper"" }, ""compress"": false, ""large_threshold"": 250, ""status"": ""online"", ""since"": &2, ""afk"": false} }";
@@ -49,6 +48,7 @@ namespace DSC
         static bool inChannel = false;
         public static bool WSConnect()
         {
+            bool fn = false;
             try
             {
                 ws.Connect();
@@ -78,8 +78,9 @@ namespace DSC
                 ws.OnClose += Ws_OnClose;
 
                 Console.WriteLine("Setting Arguments!");
-                dtop = Console.CursorTop; // May not work on some computers or in integrated/emuated consoles.
-                dleft = Console.CursorLeft;
+                //dtop = Console.CursorTop;
+                //dleft = Console.CursorLeft;
+
                 Token = File.ReadAllLines(Environment.CurrentDirectory + @"\tk.txt")[0];
                 DateTime dt70 = new DateTime(1970, 1, 1);
                 TimeSpan ts70 = DateTime.Now - dt70;
@@ -91,6 +92,16 @@ namespace DSC
             {
                 Console.WriteLine("Exception: " + ex.Message);
                 return false;
+            }
+        }
+        class hi
+        {
+            public string u { get; set; }
+            public string p { get; set; }
+            public hi(string i, string c)
+            {
+                u = i;
+                p = c;
             }
         }
         static void Main(string[] args)
@@ -111,25 +122,55 @@ namespace DSC
             if (!yN())
                 Exit("Replied 'no' to continuation message.");
 
-            //var data = new { content = "Hello world!" };
-            //Console.WriteLine(data.AsJson().ReadAsStringAsync().Result);//654860494414544905 539280524041125889
-            //var response = client.PostAsync("https://discordapp.com/api/v6/channels/539280524041125889/messages", data.AsJson());
-            //Console.WriteLine(response.Result);
-            #if(debug)
             Console.WriteLine("D for Debug or N for Normal?\n");
             if ((Console.ReadLine().ToLower() == "d") == true)
                 Debug();
-            #endif
-            Run();
+            else
+                Run();
             Console.ReadLine();
             ws.Close();
         }
+
+        static char sel = 'y';
+        static bool onFriend = true;
         static void Run()
         {
             while (true)
             {
+                Console.WriteLine("y: List Servers; n: List Relationships");
+                sel = Console.ReadLine().ToLower()[0];
+                while(sel == 'n')
+                {
 
-                while (!inServer)
+                        List<User2> userRelationships = new List<User2>();
+                        for (int i = 0; i < ReadyEvent.d.relationships.Count; i++)
+                        {
+                            Console.WriteLine(String.Format("{0}-{1}:{2}", i, ReadyEvent.d.relationships[i].user.id + " " + ReadyEvent.d.relationships[i].user.username, ReadyEvent.d.relationships[i].user.discriminator));
+                            userRelationships.Add(ReadyEvent.d.relationships[i].user);
+                        }
+                        Console.WriteLine("Select a person to DM");
+                        string content = Console.ReadLine();
+                        if (content.ToUpper() == "BACK")
+                            Exit("END");
+                        Recipient rec = new Recipient();
+                        rec.integrateUser(userRelationships[int.Parse(content)]);
+                        Channel channel = new Channel();
+                        channel.id = ReadyEvent.d.private_channels.First(o => o.recipients[0].username == rec.username).id;
+                        selectedChannel = channel;
+                        while (onFriend)
+                        {
+                            Console.Clear();
+                            foreach (Data.EventTypes.MESSAGE_CREATE.Event_message_create mc in StaticData.Messages)
+                            {
+                                Console.WriteLine(string.Format("{0}#{1}:{2}\n{3}\n", mc.d.author.username, mc.d.author.discriminator, mc.d.timestamp, mc.d.content));
+                            }
+
+                            Console.Write("Command: ");
+                            Command(Console.ReadLine());
+                        }
+                    
+                }
+                while (!inServer && sel == 'y')
                 {
                     try
                     {
@@ -149,7 +190,7 @@ namespace DSC
                         Console.WriteLine("Try again!");
                     }
                 }
-                while (!inChannel)
+                while (!inChannel && sel == 'y')
                 {
                     List<Channel> textChannels = selectedGuild.channels.Where(root => root.type == 0).ToList();
                     try
@@ -177,39 +218,48 @@ namespace DSC
                         textChannels.Clear();
                     }
                 }
-                //int inloop = 1;
                 while(inServer && inChannel)
                 {
-                    //if(inloop < 1)
-                        //Console.SetCursorPosition(0, 0);
                     Console.Clear();
-                    //Console.WriteLine("\n\n");
                     foreach (Data.EventTypes.MESSAGE_CREATE.Event_message_create mc in StaticData.Messages)
                     {
                         Console.WriteLine(string.Format("{0}#{1}:{2}\n{3}\n", mc.d.author.username, mc.d.author.discriminator, mc.d.timestamp, mc.d.content));
                     }
                     Console.Write("Command: ");
-                    String content = Console.ReadLine();
-                    switch (content.Split(' ')[0].ToUpper())
-                    {
-                        case "POST":
-                            Send(content.Substring(4, content.Length - 4));
-                            Thread.Sleep(20); // wait for response from server.
-                            // TODO: Create an event and wait wait on that event to be triggered. (Or wait on a flag to change.)
-                            break;
-                        case "BACK":
-                            inChannel = false;
-                            Console.Clear();
-                            Console.SetCursorPosition(dleft, dtop);
-                            break;
-                        case "CLEAR":
-                            Console.Clear();
-                            StaticData.Messages.Clear();
-                            break;
-                    }
+                    Command(Console.ReadLine());
                 }
             }
         }
+
+        static void Command(string userinput)
+        {
+            switch (userinput.Split(' ')[0].ToUpper())
+            {
+                case "POST":
+                    Send(userinput.Substring(4, userinput.Length - 4));
+                    Thread.Sleep(10);
+                    break;
+                case "BACK":
+                    inChannel = false;
+                    Console.Clear();
+                    StaticData.Messages.Clear();
+                    Console.SetCursorPosition(dleft, dtop);
+                    break;
+                case "CLEAR":
+                    Console.Clear();
+                    StaticData.Messages.Clear();
+                    break;
+                case "EXIT":
+                    Exit("User requested termination");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Send a string to the selected server.
+        /// </summary>
+        /// <param name="content"></param>
+        /// <returns></returns>
         static bool Send([Optional] string content)
         {
             if (content == null)
@@ -254,8 +304,8 @@ namespace DSC
 
         private static void Ws_OnClose(object sender, CloseEventArgs e)
         {
-            Console.WriteLine(string.Format("The connection to the Discord API has unexpectedly closed!\nMsg: {0}\nCode: {1}", e.Reason, e.Code));
-            Console.ReadLine();
+            Console.WriteLine(e.Reason);
+            Console.WriteLine(e.Code);
         }
 
         //Console.WriteLine("DATA FLAG");
@@ -263,6 +313,7 @@ namespace DSC
         //Console.WriteLine("END DATA");
         //int x = 0;
         //int.TryParse(e.Data.Split(',')[2].Split(':')[1], out x);
+
         static ReadyEvent Parse(string data)
         {
             try
@@ -278,7 +329,7 @@ namespace DSC
         private static void Ws_OnMessage(object sender, MessageEventArgs e)
         {
             ReadyEvent RO = null;
-            while(RO == null)
+            while (RO == null)
             {
                 RO = Parse(e.Data);
             }
@@ -322,18 +373,19 @@ namespace DSC
                 switch (RO.t)
                 {
                     default:
-                        if(debugFlag) // debug flag is set to false yet this still happens.
+                        if(debugFlag)
                             Console.WriteLine("UNKNOWN EVENT: " + string.Format("{0}\n{1}", RO.t, JsonConvert.DeserializeObject(e.Data)));
                         break;
                     case "MESSAGE_CREATE":
                         Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
-                        StaticData.Messages.Add(MC);
+                        if(MC.d.channel_id == selectedChannel.id)
+                            StaticData.Messages.Add(MC);
                         Console.Title = "added";
                         break;
                     case "PRESENCE_UPDATE":
                         Data.EventTypes.PRESENCE_UPDATE _UPDATE = JsonConvert.DeserializeObject<Data.EventTypes.PRESENCE_UPDATE>(e.Data);
                         break;
-                    case "MESSAGE_ACK": // ACK
+                    case "MESSAGE_ACK": // ACK (Heartbeat interval)
                         break;
                 }
             }
@@ -346,10 +398,6 @@ namespace DSC
                 ws.Send(op1);
                 Thread.Sleep(heartbeat_interval);
             }
-        }
-        static void Push(string token, string msg, string channel)
-        {
-
         }
     }
 }
