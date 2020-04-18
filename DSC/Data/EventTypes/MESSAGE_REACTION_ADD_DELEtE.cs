@@ -14,7 +14,7 @@ namespace DSC.Data.EventTypes
         public string channel_id { get; set; }
     }
 
-    public class MESSAGE_REACTION_ADD
+    public class MESSAGE_REACTION_ADD_DELEtE
     {
         public string t { get; set; }
         public int s { get; set; }

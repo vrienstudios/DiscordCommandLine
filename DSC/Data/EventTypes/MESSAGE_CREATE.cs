@@ -3,14 +3,14 @@ using System.Collections.Generic;
 
 namespace DSC.Data.EventTypes
 {
-    class MESSAGE_CREATE
+    public class MESSAGE_CREATE
     {
         public class Author
         {
-            public string username { get; set; }
-            public string id { get; set; }
-            public string discriminator { get; set; }
-            public string avatar { get; set; }
+            public string username { get; set; } // Does this need explaining?
+            public string id { get; set; } // A users ID.
+            public string discriminator { get; set; } // those numbers that come after that hashtag
+            public string avatar { get; set; } // ...part of the link to the profile picture.
         }
 
         public class MESSAGE_CREATE_D
