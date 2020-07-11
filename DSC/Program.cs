@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 
 namespace DSC
 {
@@ -167,6 +168,8 @@ namespace DSC
                         Channel channel = new Channel();
                     channel.id = ReadyEvent.d.private_channels.First(o => (o.recipients.Count() > 0 ? o.recipients[0].id : "0") == rec.id).id;
                         selectedChannel = channel;
+                    GetMessages(channel.id, 10);
+                    onFriend = true;
                         while (onFriend)
                         {
                             Console.Clear();
@@ -268,6 +271,24 @@ namespace DSC
                     Exit("User requested termination");
                     break;
             }
+        }
+
+        static void GetMessages(string channel_id, int amount)
+        {
+            //https://discordapp.com/api/v6/channels/358835562389438464/messages?limit=50
+            System.Threading.Tasks.Task<HttpResponseMessage> response = client.GetAsync(string.Format("https://discordapp.com/api/v6/channels/{0}/messages?limit={1}", channel_id, amount.ToString()));
+            if (!response.Result.IsSuccessStatusCode)
+                throw new Exception();
+            System.Threading.Tasks.Task<string> str = response.Result.Content.ReadAsStringAsync();
+            List<Data.MESSAGE> MC = JsonConvert.DeserializeObject<List<Data.MESSAGE>>(str.Result);
+            Console.WriteLine(str.Result);
+            foreach(Data.MESSAGE eventMessage in MC)
+                StaticData.Messages.Add(eventMessage.toEventMessage());
+
+            StaticData.Messages.Reverse();
+
+            foreach (Data.EventTypes.MESSAGE_CREATE.Event_message_create mc in StaticData.Messages)
+                Console.WriteLine(string.Format("{0}#{1}:{2}\n{3}\n", mc.d.author.username, mc.d.author.discriminator, mc.d.timestamp, mc.d.content));
         }
 
         /// <summary>
