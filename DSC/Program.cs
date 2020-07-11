@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using WebSocketSharp;
 using System.Net.Http;
@@ -25,7 +25,7 @@ namespace DSC
     public static class Program
     {
         public static string Token = string.Empty;
-        static WebSocket ws = new WebSocket("wss://gateway.discord.gg/?v=6&encoding=json");
+        static WebSocket ws;
         static string op1 = @"{""op"": 1, ""d"": 251}"; // ""presence"": { ""game"": { ""name"": ""test"", ""type"": 0 } }
         static string op2 = @"{""op"": 2, ""d"": { ""token"": ""&1"", ""properties"": { ""$os"": ""linux"", ""$browser"": ""etzyy - wrapper"", ""$device"": ""etzyy - wrapper"" }, ""compress"": false, ""large_threshold"": 250, ""status"": ""online"", ""since"": &2, ""afk"": false} }";
 
@@ -66,12 +66,14 @@ namespace DSC
             if (message != null)
                 Console.WriteLine(message);
             Thread.Sleep(20); // provide time to read terminal
+            Console.ReadLine();
             Environment.Exit(0);
         }
         public static bool SetUp()
         {
             try
             {
+                ws = new WebSocket("wss://gateway.discord.gg/?v=6&encoding=json");
                 Console.WriteLine("Setting Events!");
                 ws.OnOpen += Ws_OnOpen;
                 ws.OnMessage += Ws_OnMessage;
@@ -106,10 +108,13 @@ namespace DSC
         }
         static void Main(string[] args)
         {
-            if (!SetUp())
-                Exit();
+            Thread Baro = new Thread(() => SetUp());
+            Baro.Start();
+            //if (!SetUp())
+            //    Exit();
             Console.WriteLine("Connecting!");
             int timeout = 0;
+            Thread.Sleep(1000);
             while (!WSConnect() && timeout < 5)
             {
                 timeout++;
@@ -126,7 +131,11 @@ namespace DSC
             if ((Console.ReadLine().ToLower() == "d") == true)
                 Debug();
             else
+            {
+                //Thread thr = new Thread(Run);
+                //thr.Start();
                 Run();
+            }
             Console.ReadLine();
             ws.Close();
         }
@@ -155,7 +164,7 @@ namespace DSC
                         Recipient rec = new Recipient();
                         rec.integrateUser(userRelationships[int.Parse(content)]);
                         Channel channel = new Channel();
-                        channel.id = ReadyEvent.d.private_channels.First(o => o.recipients[0].username == rec.username).id;
+                    channel.id = ReadyEvent.d.private_channels.First(o => (o.recipients.Count() > 0 ? o.recipients[0].id : "0") == rec.id).id;
                         selectedChannel = channel;
                         while (onFriend)
                         {
@@ -276,7 +285,7 @@ namespace DSC
             catch (Exception ex)
             {
                 Console.Title = ex.Message;
-                //Console.WriteLine("Error posting: " + ex.Message);
+                Console.WriteLine("Error posting: " + ex.Message);
                 return false;
             }
             finally
@@ -326,67 +335,75 @@ namespace DSC
                 return null;
             }
         }
+        static ReadyEvent RO = null;
         private static void Ws_OnMessage(object sender, MessageEventArgs e)
         {
-            ReadyEvent RO = null;
-            while (RO == null)
+            RO = Parse(e.Data);
+            if(RO != null)
             {
-                RO = Parse(e.Data);
-            }
-            if(flg != 2)
-            {
-                if (readycount >= 20)
-                    Exit("FAILED TO RECIEVE CRITICAL OP FROM SERVER");
-                if (flg < 1)
+                if (flg != 2)
                 {
-                    readycount++;
-                    if (RO.op == 10)
+                    if (readycount >= 60)
+                        Exit("FAILED TO RECIEVE CRITICAL OP FROM SERVER");
+                    if (flg < 1)
                     {
-                        Console.WriteLine("Op10 has been recieved!, parsing...");
-                        HeartBeat heart = JsonConvert.DeserializeObject<HeartBeat>(e.Data);
-                        heartbeat = heart.d.heartbeat_interval;
-                        Console.WriteLine("Heartbeat: " + heartbeat);
-                        Thread thr = new Thread(() => PostOp1(heartbeat));
-                        thr.Start();
-                        flg = 1;
-                        ws.Send(op2);
-                        Console.WriteLine("Replying with OP2... waiting."); // Seems to be some kind of loop here.
-                        readycount = 0;
+                        readycount++;
+                        if (RO.op == 10)
+                        {
+                            Console.WriteLine("Op10 has been recieved!, parsing...");
+                            HeartBeat heart = JsonConvert.DeserializeObject<HeartBeat>(e.Data);
+                            heartbeat = heart.d.heartbeat_interval;
+                            Console.WriteLine("Heartbeat: " + heartbeat);
+                            Thread thr = new Thread(() => PostOp1(heartbeat));
+                            thr.Start();
+                            flg = 1;
+                            RO = null;
+                            ws.Send(op2);
+                            Console.WriteLine("Replying with OP2... waiting."); // Seems to be some kind of loop here.
+                            readycount = 0;
+                        }
+                    }
+                    else
+                    {
+                        if (RO.t == "READY")
+                        {
+                            Console.WriteLine("Recieved 'READY' event! Handshake complete!");
+                            StaticData.CurrentUser = RO.d.user;
+                            StaticData.Guilds = RO.d.guilds;
+                            ReadyEvent = RO;
+                            flg = 2;
+                        }
+                        else
+                        {
+                            readycount++;
+                            RO = null;
+                        }
                     }
                 }
                 else
                 {
-                    if (RO.t == "READY")
+                    Console.Title = (RO.t);
+                    switch (RO.t)
                     {
-                        Console.WriteLine("Recieved 'READY' event! Handshake complete!");
-                        StaticData.CurrentUser = RO.d.user;
-                        StaticData.Guilds = RO.d.guilds;
-                        ReadyEvent = RO;
-                        flg = 2;
+                        case "MESSAGE_CREATE":
+                            Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
+                            if (selectedChannel != null)
+                            {
+                                if (MC.d.channel_id == selectedChannel.id)
+                                    StaticData.Messages.Add(MC);
+                            }
+                            //Console.Title = "added";
+                            break;
+                        case "PRESENCE_UPDATE":
+                            Data.EventTypes.PRESENCE_UPDATE _UPDATE = JsonConvert.DeserializeObject<Data.EventTypes.PRESENCE_UPDATE>(e.Data);
+                            break;
+                        case "MESSAGE_ACK": // ACK (Heartbeat interval)
+                            break;
+                        default:
+                            if (debugFlag)
+                                Console.WriteLine("UNKNOWN EVENT: " + string.Format("{0}\n{1}", RO.t, JsonConvert.DeserializeObject(e.Data)));
+                            break;
                     }
-                    else
-                        readycount++;
-                }
-            }
-            else
-            {
-                switch (RO.t)
-                {
-                    default:
-                        if(debugFlag)
-                            Console.WriteLine("UNKNOWN EVENT: " + string.Format("{0}\n{1}", RO.t, JsonConvert.DeserializeObject(e.Data)));
-                        break;
-                    case "MESSAGE_CREATE":
-                        Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
-                        if(MC.d.channel_id == selectedChannel.id)
-                            StaticData.Messages.Add(MC);
-                        Console.Title = "added";
-                        break;
-                    case "PRESENCE_UPDATE":
-                        Data.EventTypes.PRESENCE_UPDATE _UPDATE = JsonConvert.DeserializeObject<Data.EventTypes.PRESENCE_UPDATE>(e.Data);
-                        break;
-                    case "MESSAGE_ACK": // ACK (Heartbeat interval)
-                        break;
                 }
             }
         }   
