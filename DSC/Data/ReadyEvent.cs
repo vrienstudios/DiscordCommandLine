@@ -1,4 +1,5 @@
-﻿using System;
+using DSC.Data.EventTypes;
+using System;
 using System.Collections.Generic;
 
 namespace DSC.Data
@@ -11,11 +12,11 @@ namespace DSC.Data
     public class UserSettings
     {
         public int timezone_offset { get; set; }
-        public string theme { get; set; }
-        public bool stream_notifications_enabled { get; set; }
-        public string status { get; set; }
-        public bool show_current_game { get; set; }
-        public List<object> restricted_guilds { get; set; }
+        public string theme { get; set; } // picks one of the two themes Discord has.
+        public bool stream_notifications_enabled { get; set; } // Wether users will get notifications that users are streaming.
+        public string status { get; set; } // Online, Invisible, Idle, etc
+        public bool show_current_game { get; set; } // Wether the current game will be shown or not.
+        public List<object> restricted_guilds { get; set; } // Unknown
         public bool render_reactions { get; set; }
         public bool render_embeds { get; set; }
         public bool message_display_compact { get; set; }
@@ -105,6 +106,27 @@ namespace DSC.Data
         public string discriminator { get; set; }
         public bool bot { get; set; }
         public string avatar { get; set; }
+        public int public_flags { get; set; }
+
+        public void integrateUser(object user)
+        {
+            switch (user)
+            {
+                case User u1:
+                    this.username = u1.username;
+                    this.id = u1.id;
+                    this.discriminator = u1.discriminator;
+                    this.avatar = u1.avatar;
+                    break;
+
+                case User2 u2:
+                    this.username = u2.username;
+                    this.id = u2.id;
+                    this.discriminator = u2.discriminator;
+                    this.avatar = u2.avatar;
+                    break;
+            }
+        }
     }
 
     public class PrivateChannel
@@ -352,5 +374,46 @@ namespace DSC.Data
         public string s { get; set; }
         public int op { get; set; }
         public D d { get; set; }
+    }
+
+    public class MESSAGE
+    {
+        public string id { get; set; }
+        public int type { get; set; }
+        public string content { get; set; }
+        public string channel_id { get; set; }
+        public Recipient author { get; set; }
+        public List<object> attachments { get; set; }
+        public List<object> embeds { get; set; }
+        public List<object> mentions { get; set; }
+        public List<object> mention_roles { get; set; }
+        public bool pinned { get; set; }
+        public bool mention_everyone { get; set; }
+        public bool tts { get; set; }
+        public DateTime timestamp { get; set; }
+        public object edited_timestamp { get; set; }
+        public int flags { get; set; }
+
+        public Data.EventTypes.MESSAGE_CREATE.Event_message_create toEventMessage()
+        {
+            EventTypes.MESSAGE_CREATE.Event_message_create evMessage = new MESSAGE_CREATE.Event_message_create {
+                op = 22,
+                s = 22,
+                t = "MESSAGE_EV_GRAB",
+                d = new MESSAGE_CREATE.MESSAGE_CREATE_D {
+                    author = new MESSAGE_CREATE.Author { username = this.author.username, avatar = this.author.avatar, discriminator = this.author.discriminator, id = this.author.id },
+                    channel_id = this.channel_id,
+                    id = this.id,
+                    content = this.content,
+                    timestamp = this.timestamp
+                }
+            };
+            return evMessage;
+        }
+    }
+
+    public class MESSAGES
+    {
+        public List<MESSAGE> messages { get; set; }
     }
 }
