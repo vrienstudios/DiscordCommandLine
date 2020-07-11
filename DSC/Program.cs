@@ -382,27 +382,41 @@ namespace DSC
                 }
                 else
                 {
-                    Console.Title = (RO.t);
-                    switch (RO.t)
+                    if(RO.t != null)
                     {
-                        case "MESSAGE_CREATE":
-                            Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
-                            if (selectedChannel != null)
-                            {
-                                if (MC.d.channel_id == selectedChannel.id)
-                                    StaticData.Messages.Add(MC);
-                            }
-                            //Console.Title = "added";
-                            break;
-                        case "PRESENCE_UPDATE":
-                            Data.EventTypes.PRESENCE_UPDATE _UPDATE = JsonConvert.DeserializeObject<Data.EventTypes.PRESENCE_UPDATE>(e.Data);
-                            break;
-                        case "MESSAGE_ACK": // ACK (Heartbeat interval)
-                            break;
-                        default:
-                            if (debugFlag)
-                                Console.WriteLine("UNKNOWN EVENT: " + string.Format("{0}\n{1}", RO.t, JsonConvert.DeserializeObject(e.Data)));
-                            break;
+                        Console.Title = (RO.t);
+                        switch (RO.t)
+                        {
+                            case "MESSAGE_CREATE":
+                                Data.EventTypes.MESSAGE_CREATE.Event_message_create MC = JsonConvert.DeserializeObject<Data.EventTypes.MESSAGE_CREATE.Event_message_create>(e.Data);
+                                if (selectedChannel != null)
+                                {
+                                    if (MC.d.channel_id == selectedChannel.id)
+                                        StaticData.Messages.Add(MC);
+                                    Console.Clear();
+                                    foreach (Data.EventTypes.MESSAGE_CREATE.Event_message_create mc in StaticData.Messages)
+                                    {
+                                        Console.WriteLine(string.Format("{0}#{1}:{2}\n{3}\n", mc.d.author.username, mc.d.author.discriminator, mc.d.timestamp, mc.d.content));
+                                    }
+
+                                    Console.Write("Command: ");
+                                }
+                                //Console.Title = "added";
+                                break;
+                            case "PRESENCE_UPDATE":
+                                Data.EventTypes.PRESENCE_UPDATE _UPDATE = JsonConvert.DeserializeObject<Data.EventTypes.PRESENCE_UPDATE>(e.Data);
+                                break;
+                            case "MESSAGE_ACK": // ACK (Heartbeat interval)
+                                break;
+                            default:
+                                if (debugFlag)
+                                    Console.WriteLine("UNKNOWN EVENT: " + string.Format("{0}\n{1}", RO.t, JsonConvert.DeserializeObject(e.Data)));
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        Console.Title = "   ";
                     }
                 }
             }
