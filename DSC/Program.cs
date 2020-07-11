@@ -168,7 +168,7 @@ namespace DSC
                         Channel channel = new Channel();
                     channel.id = ReadyEvent.d.private_channels.First(o => (o.recipients.Count() > 0 ? o.recipients[0].id : "0") == rec.id).id;
                         selectedChannel = channel;
-                    GetMessages(channel.id, 10);
+                    GetMessages(channel.id, StaticData.NumberMessagesToRetrieve);
                     onFriend = true;
                         while (onFriend)
                         {
@@ -266,6 +266,10 @@ namespace DSC
                 case "CLEAR":
                     Console.Clear();
                     StaticData.Messages.Clear();
+                    break;
+                case "LOAD":
+                    StaticData.NumberMessagesToRetrieve = int.Parse(userinput.Substring(4, userinput.Length - 4));
+                    Console.Title = "Number of messages to load has changed; reload the channel manually for it to take effect.";
                     break;
                 case "EXIT":
                     Exit("User requested termination");
