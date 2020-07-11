@@ -411,9 +411,4 @@ namespace DSC.Data
             return evMessage;
         }
     }
-
-    public class MESSAGES
-    {
-        public List<MESSAGE> messages { get; set; }
-    }
 }
