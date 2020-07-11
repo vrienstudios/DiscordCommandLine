@@ -1,3 +1,3 @@
 # DiscordCommandLine - DSC - (WIP)
-A command line version of Discord for Windows
+A command line version of discord, made to be lightweight. 
 
