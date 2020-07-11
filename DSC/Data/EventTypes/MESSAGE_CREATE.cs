@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace DSC.Data.EventTypes
@@ -40,5 +40,7 @@ namespace DSC.Data.EventTypes
             public int op { get; set; }
             public MESSAGE_CREATE_D d { get; set; }
         }
+
+
     }
 }
