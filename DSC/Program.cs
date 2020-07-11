@@ -146,6 +146,7 @@ namespace DSC
         {
             while (true)
             {
+            A:
                 Console.WriteLine("y: List Servers; n: List Relationships");
                 sel = Console.ReadLine().ToLower()[0];
                 while(sel == 'n')
@@ -159,8 +160,8 @@ namespace DSC
                         }
                         Console.WriteLine("Select a person to DM");
                         string content = Console.ReadLine();
-                        if (content.ToUpper() == "BACK")
-                            Exit("END");
+                    if (content.ToUpper() == "BACK")
+                        goto A;
                         Recipient rec = new Recipient();
                         rec.integrateUser(userRelationships[int.Parse(content)]);
                         Channel channel = new Channel();
@@ -249,7 +250,12 @@ namespace DSC
                     Thread.Sleep(10);
                     break;
                 case "BACK":
-                    inChannel = false;
+                    if (inChannel)
+                        inChannel = !inChannel;
+                    else if (onFriend)
+                        onFriend = !onFriend;
+
+                    selectedChannel = null;
                     Console.Clear();
                     StaticData.Messages.Clear();
                     Console.SetCursorPosition(dleft, dtop);
