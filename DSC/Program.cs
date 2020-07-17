@@ -97,16 +97,6 @@ namespace DSC
                 return false;
             }
         }
-        class hi
-        {
-            public string u { get; set; }
-            public string p { get; set; }
-            public hi(string i, string c)
-            {
-                u = i;
-                p = c;
-            }
-        }
         static void Main(string[] args)
         {
             Thread Baro = new Thread(() => SetUp());
@@ -324,7 +314,7 @@ namespace DSC
                 data.Dispose();
             }
         }
-        class Message // temporary
+        class Message // semi-permanent. Removed/moved in next update.
         {
             public string content { get; set; }
             public Message(string content)
