@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
@@ -81,6 +82,65 @@ namespace DSC2
 
         static Channel currentChannel;
         static List<Message> messages = new List<Message>();
+
+
+        private static void listRelationships()
+        {
+        retryRelationshipSelection:;
+            Console.Clear();
+            int i = 0;
+            foreach(PrivateChannel rel in Storage.ReadyEvent.d.private_channels)
+            {
+                try
+                {
+                    Console.WriteLine("{0}|{1}#{2}", i++, rel.recipients[0].username, rel.recipients[0].discriminator);
+                }
+                catch
+                {
+                    //pass
+                }
+            }
+            int gp = 0;
+            Console.Write("\nSelect a relationship via number: ");
+            string relSelect = Console.ReadLine();
+            if (relSelect.ToUpper() == "BCK")
+                return;
+            int.TryParse(relSelect, out gp);
+            if (gp < 0)
+                goto retryRelationshipSelection;
+
+            PrivateChannel relationship = Storage.ReadyEvent.d.private_channels[gp];
+            currentChannel = new Channel { id = relationship.id };
+            RewriteTitle(relationship.recipients[0].username);
+
+        retryCommandInput:
+            WriteMessages();
+            string commandlist = Console.ReadLine();
+            string command = commandlist.Substring(0, 3).ToUpper();
+            switch (command)
+            {
+                default:
+                    Console.WriteLine("Error, command not recognized, try the hlp command.");
+                    goto retryCommandInput;
+                case "MSG":
+                    currentChannel.PostMessage(commandlist.Substring(4, commandlist.Length - 4), false);
+                    goto retryCommandInput;
+                case "HLP":
+                    printHelp();
+                    goto retryCommandInput;
+                case "BCK":
+                    currentChannel = null;
+                    goto retryRelationshipSelection;
+                case "LOD":
+                    messages.Clear();
+                    messages = currentChannel.GetPastMessagesList(15);
+                    goto retryCommandInput;
+                case "CLR":
+                    messages.Clear();
+                    goto retryCommandInput;
+            }
+        }
+
         private static void listServers()
         {
         retryGuildSelection:;
@@ -123,7 +183,7 @@ namespace DSC2
             RewriteTitle(selectedGuild.name);
 
         retryCommandInput:
-            Console.WriteLine("Input a Command: ");
+            WriteMessages();
             string commandlist = Console.ReadLine();
             string command = commandlist.Substring(0, 3).ToUpper();
             switch (command)
@@ -138,28 +198,26 @@ namespace DSC2
                     printHelp();
                     goto retryCommandInput;
                 case "BCK":
+                    currentChannel = null;
                     goto retryChannelSelection;
                 case "LOD":
                     messages.Clear();
                     messages = currentChannel.GetPastMessagesList(15);
+                    goto retryCommandInput;
+                case "CLR":
+                    messages.Clear();
                     goto retryCommandInput;
             }
         }
 
         private static void printHelp()
         {
-            Console.WriteLine("Hlp - displays this page");
-            Console.WriteLine("Msg (your message) - shoots a message to the current channel without parentheses");
-            Console.WriteLine("Bck - takes you back one step");
-            Console.WriteLine("Lod - allows you to recieve messages from the current channel.");
-            Console.WriteLine("{N/A}Load - change the amount of messages loaded when entering a channel");
-            Console.WriteLine("{N/A}frq - view friend requests {not available}");
-            Console.WriteLine("{N/a}SnpOn - Enables a Nitro sniper as long as your in the specific channel");
-        }
-
-        private static void listRelationships()
-        {
-
+            messages.Add(new Message
+            {
+                author = new Recipient() { username = "DCL~SYS", discriminator = "||" },
+                content = "\r\nHlp - displays this page\r\nMsg (your message) - shoots a message to the current channel without parentheses\r\nBck - takes you back one step\r\nLod - allows you to recieve messages from the current channel.\r\nClr - Clears the current message buffer manually.",
+            });
+            WriteMessages();
         }
 
         private static void WriteAt(string str, int left, int top)
@@ -168,21 +226,28 @@ namespace DSC2
             Console.WriteLine(str);
         }
 
-        private static void Events_OnMessageRecieve(TDSBF.Data.Discord.Events.Protected.MessageAlert e)
+        private static int[] WriteMessages()
         {
             int idx = 0;
+            Console.Clear();
+            ConRow = Console.CursorTop;
+            ConCol = Console.CursorLeft;
+            idx = 0;
+            foreach (Message msg in messages)
+            {
+                WriteAt(String.Format("{0}#{1}: {2}", msg.author.username, msg.author.discriminator, msg.content), 0, idx++);
+                if (msg.author.username == "DCL~SYS") { idx = idx + 6; }
+            }
+            WriteAt("Input a Command: ", 0, idx);
+            return new int[2] { 0, idx };
+        }
+
+        private static void Events_OnMessageRecieve(TDSBF.Data.Discord.Events.Protected.MessageAlert e)
+        {
             if (currentChannel != null && e.Message.channel_id == currentChannel.id)
             {
                 messages.Add(e.Message);
-                Console.Clear();
-                ConRow = Console.CursorTop;
-                ConCol = Console.CursorLeft;
-                idx = 0;
-                foreach (Message msg in messages)
-                {
-                    WriteAt(String.Format("{0}#{1}: {2}", msg.author.username, msg.author.discriminator, msg.content), 0, idx++);
-                }
-                WriteAt("Input a Command: ", 0, idx);
+                WriteMessages();
             }
         }
 
