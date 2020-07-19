@@ -19,10 +19,14 @@ namespace DSC2
         {
             Console.Title = "Totality Sample CS | " + textToAppend;
         }
+        static int ConRow = 0;
+        static int ConCol = 0;
         static void Main(string[] args)
         {
+            ConRow = Console.CursorTop;
+            ConCol = Console.CursorLeft;
             RewriteTitle(string.Empty);
-            Console.Write("Input your token: ");
+            Console.Write("(Your token will be hidden; you can copy paste and hit enter.)\nInput your token: ");
             
             Totality totality = new Totality();
 
@@ -75,6 +79,8 @@ namespace DSC2
             Console.WriteLine("Input command: \nShell not finished");
         }
 
+        static Channel currentChannel;
+        static List<Message> messages = new List<Message>();
         private static void listServers()
         {
         retryGuildSelection:;
@@ -113,10 +119,10 @@ namespace DSC2
             if (gp < 0)
                 goto retryChannelSelection;
 
-            Channel selectedChannel = selectedGuild.channels[cp];
+            currentChannel = selectedGuild.channels[cp];
             RewriteTitle(selectedGuild.name);
 
-        retryCommandInput:;
+        retryCommandInput:
             Console.WriteLine("Input a Command: ");
             string commandlist = Console.ReadLine();
             string command = commandlist.Substring(0, 3).ToUpper();
@@ -126,13 +132,17 @@ namespace DSC2
                     Console.WriteLine("Error, command not recognized, try the hlp command.");
                     goto retryCommandInput;
                 case "MSG":
-                    selectedChannel.PostMessage(commandlist.Substring(4, commandlist.Length - 4), false);
+                    currentChannel.PostMessage(commandlist.Substring(4, commandlist.Length - 4), false);
                     goto retryCommandInput;
                 case "HLP":
                     printHelp();
                     goto retryCommandInput;
                 case "BCK":
                     goto retryChannelSelection;
+                case "LOD":
+                    messages.Clear();
+                    messages = currentChannel.GetPastMessagesList(15);
+                    goto retryCommandInput;
             }
         }
 
@@ -141,6 +151,7 @@ namespace DSC2
             Console.WriteLine("Hlp - displays this page");
             Console.WriteLine("Msg (your message) - shoots a message to the current channel without parentheses");
             Console.WriteLine("Bck - takes you back one step");
+            Console.WriteLine("Lod - allows you to recieve messages from the current channel.");
             Console.WriteLine("{N/A}Load - change the amount of messages loaded when entering a channel");
             Console.WriteLine("{N/A}frq - view friend requests {not available}");
             Console.WriteLine("{N/a}SnpOn - Enables a Nitro sniper as long as your in the specific channel");
@@ -151,9 +162,28 @@ namespace DSC2
 
         }
 
+        private static void WriteAt(string str, int left, int top)
+        {
+            Console.SetCursorPosition(ConCol + left, ConRow + top);
+            Console.WriteLine(str);
+        }
+
         private static void Events_OnMessageRecieve(TDSBF.Data.Discord.Events.Protected.MessageAlert e)
         {
-            //Console.WriteLine("MS: {0}", e.Message.content);
+            int idx = 0;
+            if (currentChannel != null && e.Message.channel_id == currentChannel.id)
+            {
+                messages.Add(e.Message);
+                Console.Clear();
+                ConRow = Console.CursorTop;
+                ConCol = Console.CursorLeft;
+                idx = 0;
+                foreach (Message msg in messages)
+                {
+                    WriteAt(String.Format("{0}#{1}: {2}", msg.author.username, msg.author.discriminator, msg.content), 0, idx++);
+                }
+                WriteAt("Input a Command: ", 0, idx);
+            }
         }
 
         private static void Storage_SysAlert(TDSBF.Data.Discord.Events.Protected.SystemAlert e)
