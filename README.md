@@ -5,13 +5,10 @@ A command line version of discord, made to be lightweight.
 DCL is going under a full rewrite at the moment, and from this rewrite a library will be produced for better maintainability and user customization. You should check out DCLR on the rewrite branch. It's optimized and efficient.
 
 # Commands: 
-POST: Post a message to the current channel.
+Hlp - displays this page\r\nMsg (your message) - shoots a message to the current channel without parentheses
 
-BACK: Exit a channel.
+Bck - takes you back one step
 
-CLEAR: Clear the screen and message buffer.
+Lod - allows you to recieve messages from the current channel.
 
-LOAD: Changes amount of messages loaded into the message buffer.
-
-EXIT: Exits the application.
-
+Clr - Clears the current message buffer manually.
