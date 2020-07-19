@@ -2,7 +2,7 @@
 A command line version of discord, made to be lightweight. 
 
 # WARNING:
-DCL is going under a full rewrite at the moment, and from this rewrite a library will be produced for better maintainability and user customization.
+DCL is going under a full rewrite at the moment, and from this rewrite a library will be produced for better maintainability and user customization. You should check out DCLR on the rewrite branch. It's optimized and efficient.
 
 # Commands: 
 POST: Post a message to the current channel.
