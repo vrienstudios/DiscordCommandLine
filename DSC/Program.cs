@@ -215,7 +215,7 @@ namespace DSC2
             messages.Add(new Message
             {
                 author = new Recipient() { username = "DCL~SYS", discriminator = "||" },
-                content = "\r\nHlp - displays this page\r\nMsg (your message) - shoots a message to the current channel without parentheses\r\nBck - takes you back one step\r\nLod - allows you to recieve messages from the current channel.\r\nClr - Clears the current message buffer manually.",
+                content = "\r\nHlp - displays this page\r\nMsg (your message) - shoots a message to the current channel without parentheses\r\nBck - takes you back one step\r\nLod - allows you to recieve messages from the current channel.\r\nClr - Clears the current message buffer manually.\r\nJin - Joins a specific server",
             });
             WriteMessages();
         }
@@ -249,6 +249,8 @@ namespace DSC2
                 messages.Add(e.Message);
                 WriteMessages();
             }
+            else
+                return;
         }
 
         private static void Storage_SysAlert(TDSBF.Data.Discord.Events.Protected.SystemAlert e)
